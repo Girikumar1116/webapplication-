@@ -1,6 +1,6 @@
 var proId = '';
-$(document).ready(function(){ 
-    showProducts();
+$(document).ready(function () {
+    getAllProducts();
     $("#btn-UpdatePro").click(function(){
         if (proId != '')
         { updateProduct(proId); }
@@ -23,8 +23,11 @@ $(document).ready(function(){
         window.location.href = 'Formpage.html?edit=';
         
     });
-  
+
+
+    
 });
+
 function CreateProduct() {
     var url = "/api/Products";
     var product = {};
@@ -61,38 +64,78 @@ function CreateProduct() {
     }
 }
 
-function showProducts() {
-    var url = "/api/Products/";
+
+
+
+
+
+function getAllProducts(page = 1) {
+    console.log('Calling getAllProducts with page:', page);
     $.ajax({
-        url: url,
+        url: `/api/Products?page=${page}`, // Pass the page number as a query parameter
         contentType: "application/json; charset=utf-8",
-        dataType: "json",
-        type: "Get",
-        success: function (result) {
-            //if  (result) {
-            $("#tblPro").html('');
-            var row = "";
-            for (var i = 0; i < result.length; i++) {
-                row += "<tr>"
-                    + "<td>" + result[i].product_name + "</td>"
-                    + "<td>" + result[i].product_description + "</td>"
-                    + "<td>" + result[i].product_price + "</td>"
-                    + "<td>" + result[i].product_type + "</td>"
-                    + "<td>" + result[i].product_url + "</td>"
-                    + "<td>" + result[i].productExpiryDate + "</td>"
-                    /*+ "<td><button id='btn-Edit'class='btn btn-primary edit'onclick='editProduct(" + result[i].product_id +")'>Edit</button>&nbsp;&nbsp;&nbsp;<button class='btn btn-danger' onClick='deleteProduct(" + result[i].product_id+")'>Delete</button></td>"*/
-                    + "<td><button id='btn-Edit' class='btn btn-primary edit' >Edit</button>&nbsp;&nbsp;&nbsp;<button class='btn btn-danger' onClick='deleteProduct(" + result[i].product_id + ")'>Delete</button></td>"
-            }
-            //if (row != "") {
-            $("#tblPro").html(row)
-            ////}
-            //}
-        },
-        error: function (msg) {
-            alert("error" + msg);
+        type: 'GET',
+    }).done(function (response) {
+        console.log('Response:', response);
+
+        // Handle the success case
+        const productsList = $('#tblPro');
+        productsList.empty();
+        const products = response.product;
+
+        // Loop through the paginated products and update the table
+        products.forEach(product => {
+            productsList.append(`
+                <tr>
+                    <td>${product.product_name}</td>
+                    <td>${product.product_description}</td>
+                    <td>${product.product_price}</td>
+                    <td>${product.product_type}</td>
+                    <td>${product.product_url}</td>
+                    <td>${product.productExpiryDate}</td>
+                    <td>
+                        <button class="btn btn-primary edit">Edit</button>
+                        &nbsp;&nbsp;&nbsp;
+                        <button class="btn btn-danger" onClick="deleteProduct(${product.product_id})">Delete</button>
+                    </td>
+                </tr>
+            `);
+        });
+
+        // Update pagination details if available
+        if (response.length > 0) {
+            var paginationDetails = $('.pagination-details');
+            paginationDetails.text(`Page ${page} of ${response[0].totalPages}`);
         }
+
+        // Display pagination buttons
+        displayPaginationButtons(response[0].totalPages, page);
+    }).fail(function (error) {
+        // Handle the error case
+        console.error('Error getting products:', error);
     });
 }
+function displayPaginationButtons(totalPages, currentPage) {
+    var paginationButtons = $('.pagination-buttons');
+    paginationButtons.empty();
+
+    var buttonText = '<a href="#" class="prevPage">&laquo;</a>';
+    for (var i = 1; i <= totalPages; i++) {
+        var active = (i === currentPage) ? 'active' : '';
+        buttonText += `<a href="#" class="page_index ${active}" data-page="${i}">${i}</a>`;
+    }
+    buttonText += '<a href="#" class="nextPage">&raquo;</a>';
+
+    paginationButtons.html(buttonText);
+
+    // Bind click event to pagination buttons
+    paginationButtons.find('a').click(function (e) {
+        e.preventDefault();
+        var page = parseInt($(this).attr('data-page'));
+        getAllProducts(page);
+    });
+}
+
 function clearForm() {
     
     $("#product_name").val('');
@@ -135,6 +178,7 @@ function editProduct(id) {
         dataType: "json",
         type: "Get",
         success: function (result) {
+
             if (result) {
                 proId = result.product_id;
                 $("#product_name").val(result.product_name);

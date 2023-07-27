@@ -23,19 +23,29 @@ namespace WebApplication1.Controllers
 
         // GET: api/Products
         [HttpGet]
-        /*public async Task<ActionResult<IEnumerable<Products>>> GetProduct()
+      
+        public async Task<ActionResult<IEnumerable<Products>>> GetProduct(int page=1,int pageResults=10)
         {
-          if (_context.Product == null)
-          {
-              return NotFound();
-          }
-            return await _context.Product.ToListAsync();
-        }*/
-        [HttpGet]
-        public ActionResult<IEnumerable<Products>> GetProduct()
-        {
-            return _context.Product.ToList();
+            if (_context.Product == null)
+            {
+                return NotFound();
+            }
+           
+            var pagecount = (int)Math.Ceiling((decimal)_context.Product.Count() / pageResults);
+            var products=await _context.Product
+                .Skip((page-1)*(int)pageResults)
+                .Take((int)pageResults)
+                .ToListAsync();
+
+            return Ok(products);
         }
+        
+        //public ActionResult<IEnumerable<Products>> GetProduct()
+        //{
+        //    var pagedProducts = _context.Product.ToListAsync();
+        //    return Ok(pagedProducts);
+        //}
+
 
         // GET: api/Products/5
         [HttpGet("{id}")]
@@ -54,6 +64,12 @@ namespace WebApplication1.Controllers
 
             return products;
         }
+       
+
+
+
+
+
 
         // PUT: api/Products/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
